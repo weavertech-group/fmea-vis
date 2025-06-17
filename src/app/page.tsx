@@ -5,6 +5,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import type { Node as RFNode, Edge as RFEdge, OnNodesChange, OnEdgesChange } from "reactflow";
 import { applyNodeChanges, applyEdgeChanges, Position } from "reactflow";
 import Dagre from "@dagrejs/dagre";
+import JSONbig from "json-bigint";
 
 import type {
   FmeaNode,
@@ -19,36 +20,38 @@ import type {
 
 import { DataInputPanel } from "@/components/fmea/DataInputPanel";
 
-// Utility function to parse JSON with bigint support for uuid and parentId fields
+// Configure json-bigint to use native BigInt for large numbers
+const JSONBigInt = JSONbig({ useNativeBigInt: true });
+
+// Utility function to parse JSON with bigint support using json-bigint library
 function parseJsonWithBigInt(jsonString: string): any {
-  return JSON.parse(jsonString, (key, value) => {
-    // Convert uuid and parentId fields to bigint if they are numeric strings or numbers
-    if (key === 'uuid' || key === 'parentId' || key === 'from' || key === 'to') {
-      if (typeof value === 'string' || typeof value === 'number') {
-        try {
-          // Handle special case for -1 (used for no parent)
-          if (value === '-1' || value === -1) {
-            return BigInt(-1);
-          }
-          return BigInt(value);
-        } catch (e) {
-          // If conversion fails, return the original value
-          return value;
+  const parsed = JSONBigInt.parse(jsonString);
+  
+  // Post-process to ensure -1 values for parentId fields are converted to BigInt(-1)
+  // for consistency with existing logic
+  function convertParentIds(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(convertParentIds);
+    } else if (obj && typeof obj === 'object') {
+      const result = { ...obj };
+      if ('parentId' in result && result.parentId === -1) {
+        result.parentId = BigInt(-1);
+      }
+      // Recursively process nested objects
+      for (const key in result) {
+        if (result.hasOwnProperty(key) && typeof result[key] === 'object') {
+          result[key] = convertParentIds(result[key]);
         }
       }
+      return result;
     }
-    return value;
-  });
+    return obj;
+  }
+  
+  return convertParentIds(parsed);
 }
 
-// Utility function to truncate bigint IDs to 8 digits for display
-function truncateId(id: bigint): string {
-  const idStr = id.toString();
-  if (idStr.length <= 8) {
-    return idStr;
-  }
-  return idStr.slice(-8);
-}
+import { truncateId } from "@/lib/utils";
 import { GraphViewerWrapper } from "@/components/fmea/GraphViewer";
 import { PropertiesEditorPanel } from "@/components/fmea/PropertiesEditorPanel";
 import { BaseInfoDisplay } from "@/components/fmea/BaseInfoDisplay";
