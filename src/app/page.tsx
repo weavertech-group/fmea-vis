@@ -20,6 +20,7 @@ import type {
 import { DataInputPanel } from "@/components/fmea/DataInputPanel";
 import { parseJsonWithBigInt, formatBigIntForDisplay } from "@/lib/bigint-utils";
 import { GraphViewerWrapper } from "@/components/fmea/GraphViewer";
+import { InterfaceGraphViewerWrapper } from "@/components/fmea/InterfaceGraphViewer";
 import { PropertiesEditorPanel } from "@/components/fmea/PropertiesEditorPanel";
 import { BaseInfoDisplay } from "@/components/fmea/BaseInfoDisplay";
 import { useToast } from "@/hooks/use-toast";
@@ -80,6 +81,7 @@ export default function FmeaVisualizerPage() {
 
   const [interfaceRfNodes, setInterfaceRfNodes] = useState<RFNode<CustomNodeData>[]>([]);
   const [interfaceRfEdges, setInterfaceRfEdges] = useState<RFEdge[]>([]);
+  const [interfaceLinks, setInterfaceLinks] = useState<any[]>([]);
   
   const [selectedNode, setSelectedNode] = useState<FmeaNode | null>(null);
   const [baseInfo, setBaseInfo] = useState<DfmeaBaseInfo | PfmeaBaseInfo | null>(null);
@@ -243,8 +245,10 @@ export default function FmeaVisualizerPage() {
       }
 
       // Process interface links for interface graph
-      const interfaceLinks: any[] = (parsedData as any).interface || [];
-      const interfaceApiEdges: RFEdge[] = interfaceLinks
+      const interfaceLinksData: any[] = (parsedData as any).interface || [];
+      setInterfaceLinks(interfaceLinksData);
+      
+      const interfaceApiEdges: RFEdge[] = interfaceLinksData
         .filter(link => allApiNodes.find(n => n.uuid === link.startId) && allApiNodes.find(n => n.uuid === link.endId))
         .map(link => ({
           id: `e_interface_${link.startId}_${link.endId}_${link.type}_${link.interaction}`,
@@ -490,14 +494,15 @@ export default function FmeaVisualizerPage() {
               )}
             </TabsContent>
             <TabsContent value="interface" className="h-full m-0">
-              {!isLoading && interfaceRfNodes.length > 0 ? (
-                <GraphViewerWrapper
+              {!isLoading && (interfaceRfNodes.length > 0 || interfaceLinks.length > 0) ? (
+                <InterfaceGraphViewerWrapper
                   nodes={interfaceRfNodes}
                   edges={interfaceRfEdges}
                   onNodeClick={handleNodeClick}
                   onNodesChange={onNodesChange}
                   onEdgesChange={onEdgesChange}
                   fitView={needsLayout && activeTab === 'interface'}
+                  interfaceLinks={interfaceLinks}
                 />
               ) : (
                 <div className="w-full h-full rounded-lg shadow-lg border border-border bg-card flex items-center justify-center">
