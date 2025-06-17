@@ -19,13 +19,27 @@ export interface ProcessedSubFlowData {
 
 /**
  * Determines if a node should be part of a subflow based on its type and children
+ * Only create subflows for top-level systems or independent subsystems
  */
 export function shouldCreateSubFlow(node: FmeaNode, allNodes: FmeaNode[]): boolean {
-  const isInterfaceNode = ['system', 'subsystem', 'component'].includes(node.nodeType);
+  const isInterfaceNode = ['system', 'subsystem'].includes(node.nodeType);
   if (!isInterfaceNode) return false;
   
   const hasChildren = allNodes.some(n => n.parentId === node.uuid);
-  return hasChildren;
+  if (!hasChildren) return false;
+  
+  // Only create subflow for systems or for subsystems that are top-level (no system parent)
+  if (node.nodeType === 'system') {
+    return true;
+  }
+  
+  if (node.nodeType === 'subsystem') {
+    // Check if parent is a system - if so, don't create subflow (will be part of system subflow)
+    const parent = allNodes.find(n => n.uuid === node.parentId);
+    return !parent || parent.nodeType !== 'system';
+  }
+  
+  return false;
 }
 
 /**
@@ -40,6 +54,7 @@ export function getSubFlowType(nodeType: string): 'system' | 'subsystem' | 'comp
 
 /**
  * Groups nodes into subflows based on their parent-child relationships
+ * Returns all descendants of a subflow node, not just direct children
  */
 export function groupNodesIntoSubFlows(
   rfNodes: RFNode<CustomNodeData>[], 
@@ -52,7 +67,8 @@ export function groupNodesIntoSubFlows(
     const apiNode = rfNode.data.originalApiNode;
     
     if (shouldCreateSubFlow(apiNode, allApiNodes)) {
-      const childNodes = allApiNodes.filter(n => n.parentId === apiNode.uuid);
+      // Get all descendants of this subflow node, not just direct children
+      const childNodes = getAllDescendants(apiNode.uuid, allApiNodes);
       const nodeId = apiNode.uuid.toString();
       const isExpanded = expandedStates.get(nodeId) ?? true; // default expanded
       
@@ -67,6 +83,20 @@ export function groupNodesIntoSubFlows(
   }
   
   return subFlowGroups;
+}
+
+/**
+ * Get all descendants of a node recursively
+ */
+function getAllDescendants(parentId: bigint, allNodes: FmeaNode[]): FmeaNode[] {
+  const directChildren = allNodes.filter(n => n.parentId === parentId);
+  const allDescendants = [...directChildren];
+  
+  for (const child of directChildren) {
+    allDescendants.push(...getAllDescendants(child.uuid, allNodes));
+  }
+  
+  return allDescendants;
 }
 
 /**
@@ -87,7 +117,9 @@ export function createSubFlowNodes(
       ...originalRfNode,
       type: 'subflow',
       data: {
-        ...originalRfNode.data,
+        label: group.parentNode.description,
+        type: group.parentNode.nodeType,
+        originalApiNode: group.parentNode,
         isExpanded: group.isExpanded,
         onToggleExpand,
         childCount: group.childNodes.length,
