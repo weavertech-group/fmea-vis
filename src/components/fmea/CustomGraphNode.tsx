@@ -5,7 +5,7 @@ import type { NodeProps } from "reactflow";
 import type { CustomNodeData } from "@/types/fmea";
 import { Handle, Position } from "reactflow";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn, truncateId } from "@/lib/utils";
 import {
   FileText, Cog, BarChart2, HardDrive, Server, Puzzle, AlertTriangle, Play, Package, ListChecks, ListOrdered, User, AlertCircle, Zap, HelpCircle, Settings2, Network, Merge, Share2, GitFork
 } from "lucide-react";
@@ -66,7 +66,7 @@ export function CustomGraphNode({ data, selected, sourcePosition = Position.Righ
             </CardTitle>
           </div>
           <div className="absolute top-1 right-1.5 px-1.5 py-0.5 rounded bg-black/5 text-muted-foreground text-[10px] font-mono">
-            UUID: {originalApiNode.uuid}
+            UUID: {truncateId(originalApiNode.uuid)}
           </div>
         </CardHeader>
         <CardContent className="p-3 pt-0">

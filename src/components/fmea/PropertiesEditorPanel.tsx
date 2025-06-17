@@ -99,7 +99,7 @@ export function PropertiesEditorPanel({ nodeData, apiResponseType, onPropertyCha
     );
   }
 
-  const handleInputChange = (field: keyof FmeaNode | `extra.${string}`, value: string | number) => {
+  const handleInputChange = (field: keyof FmeaNode | `extra.${string}`, value: string | number | bigint) => {
     const updatedNode = { ...nodeData, extra: { ...(nodeData.extra || {}) } }; // Ensure extra is an object
     if (typeof field === 'string' && field.startsWith('extra.')) {
       const extraKey = field.substring(6);
@@ -141,18 +141,18 @@ export function PropertiesEditorPanel({ nodeData, apiResponseType, onPropertyCha
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="uuid">UUID (Read-only)</Label>
-            <Input id="uuid" value={nodeData.uuid} readOnly disabled className="mt-1 bg-muted/50" />
+            <Input id="uuid" value={nodeData.uuid.toString()} readOnly disabled className="mt-1 bg-muted/50" />
           </div>
           <div>
             <Label htmlFor="parentId">Parent ID</Label>
             <Input
               id="parentId"
               type="text"
-              value={nodeData.parentId === -1n ? '' : nodeData.parentId.toString()} // Show empty if -1 for better UX
+              value={nodeData.parentId === BigInt(-1) ? '' : nodeData.parentId.toString()} // Show empty if -1 for better UX
               onChange={(e) => {
                 const value = e.target.value;
                 if (value === '') {
-                  handleInputChange('parentId', -1n);
+                  handleInputChange('parentId', BigInt(-1));
                 } else {
                   try {
                     handleInputChange('parentId', BigInt(value));
@@ -192,7 +192,7 @@ export function PropertiesEditorPanel({ nodeData, apiResponseType, onPropertyCha
                   <Input
                     id={`extra-${field.key}`}
                     type={field.type === 'number' ? 'number' : 'text'}
-                    value={nodeData.extra?.[field.key] ?? ''}
+                    value={(nodeData.extra as any)?.[field.key] ?? ''}
                     onChange={(e) => handleInputChange(`extra.${field.key}`, field.type === 'number' ? parseInt(e.target.value, 10) || 0 : e.target.value)}
                     className="mt-1"
                     disabled={disabled}

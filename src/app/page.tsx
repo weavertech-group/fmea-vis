@@ -28,7 +28,7 @@ function parseJsonWithBigInt(jsonString: string): any {
         try {
           // Handle special case for -1 (used for no parent)
           if (value === '-1' || value === -1) {
-            return -1n;
+            return BigInt(-1);
           }
           return BigInt(value);
         } catch (e) {
@@ -39,6 +39,15 @@ function parseJsonWithBigInt(jsonString: string): any {
     }
     return value;
   });
+}
+
+// Utility function to truncate bigint IDs to 8 digits for display
+function truncateId(id: bigint): string {
+  const idStr = id.toString();
+  if (idStr.length <= 8) {
+    return idStr;
+  }
+  return idStr.slice(-8);
 }
 import { GraphViewerWrapper } from "@/components/fmea/GraphViewer";
 import { PropertiesEditorPanel } from "@/components/fmea/PropertiesEditorPanel";
@@ -167,7 +176,7 @@ export default function FmeaVisualizerPage() {
       }));
 
       const parentChildEdges: RFEdge[] = allApiNodes
-        .filter(node => node.parentId !== -1n && allApiNodes.find(n => n.uuid === node.parentId))
+        .filter(node => node.parentId !== BigInt(-1) && allApiNodes.find(n => n.uuid === node.parentId))
         .map(node => ({
           id: `e_parent_${node.parentId}_${node.uuid}`,
           source: node.parentId.toString(),
@@ -175,7 +184,6 @@ export default function FmeaVisualizerPage() {
           type: 'smoothstep',
           animated: false,
           style: { stroke: 'hsl(var(--foreground)/0.5)', strokeWidth: 1.5 },
-          markerEnd: { type: 'arrowclosed', color: 'hsl(var(--foreground)/0.5)' },
         }));
       
       if (allTransformedNodes.length > 0) {
@@ -197,10 +205,9 @@ export default function FmeaVisualizerPage() {
           id: `e_feature_${link.from}_${link.to}_${link.type}`,
           source: link.from.toString(),
           target: link.to.toString(),
-          label: `Feature (${link.type})`,
+          label: `Feature (${link.type}) [${truncateId(link.from)}→${truncateId(link.to)}]`,
           type: 'smoothstep',
           style: { stroke: 'hsl(var(--chart-2))', strokeWidth: 2 },
-          markerEnd: { type: 'arrowclosed', color: 'hsl(var(--chart-2))' },
         }));
 
       if (featureNetApiEdges.length > 0) {
@@ -231,10 +238,9 @@ export default function FmeaVisualizerPage() {
           id: `e_failure_${link.from}_${link.to}_${link.type}`,
           source: link.from.toString(),
           target: link.to.toString(),
-          label: `Failure (${link.type})`,
+          label: `Failure (${link.type}) [${truncateId(link.from)}→${truncateId(link.to)}]`,
           type: 'smoothstep',
           style: { stroke: 'hsl(var(--destructive))', strokeWidth: 2 },
-          markerEnd: { type: 'arrowclosed', color: 'hsl(var(--destructive))' },
         }));
 
       if (failureNetApiEdges.length > 0) {
@@ -306,7 +312,7 @@ export default function FmeaVisualizerPage() {
     if (originalNodeInMainGraph && originalNodeInMainGraph.parentId !== selectedNode.parentId) {
       setMainRfEdges(prevEdges => {
         let newEdges = prevEdges.filter(edge => !(edge.target === selectedNode.uuid.toString() && edge.id.startsWith('e_parent_')));
-        if (selectedNode.parentId !== -1n && mainRfNodes.some(n => n.id === selectedNode.parentId.toString())) {
+        if (selectedNode.parentId !== BigInt(-1) && mainRfNodes.some(n => n.id === selectedNode.parentId.toString())) {
           newEdges.push({
             id: `e_parent_${selectedNode.parentId}_${selectedNode.uuid}`,
             source: selectedNode.parentId.toString(),
@@ -314,7 +320,6 @@ export default function FmeaVisualizerPage() {
             type: 'smoothstep',
             animated: false,
             style: { stroke: 'hsl(var(--foreground)/0.5)', strokeWidth: 1.5 },
-            markerEnd: { type: 'arrowclosed', color: 'hsl(var(--foreground)/0.5)' },
           });
         }
         return newEdges;
