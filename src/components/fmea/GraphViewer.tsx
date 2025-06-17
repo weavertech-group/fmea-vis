@@ -15,6 +15,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { CustomGraphNode } from "./CustomGraphNode";
+import { SubFlowNode } from "./SubFlowNode";
 
 interface GraphViewerProps {
   nodes: Node[];
@@ -27,6 +28,7 @@ interface GraphViewerProps {
 
 const nodeTypes: NodeTypes = {
   custom: CustomGraphNode,
+  subflow: SubFlowNode,
 };
 
 export function GraphViewer({

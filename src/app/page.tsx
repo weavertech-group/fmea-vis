@@ -25,7 +25,9 @@ import { BaseInfoDisplay } from "@/components/fmea/BaseInfoDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Layout, Network, AlertTriangleIcon, ListTree } from "lucide-react";
+import { Layout, Network, AlertTriangleIcon, ListTree, Component } from "lucide-react";
+import { processNodesForSubFlows, ProcessedSubFlowData } from "@/lib/subflow-utils";
+import { SubFlowNodeData } from "@/components/fmea/SubFlowNode";
 
 const nodeWidth = 256 + 20; 
 const nodeHeight = 120 + 20;
@@ -72,6 +74,11 @@ export default function FmeaVisualizerPage() {
   const [mainRfNodes, setMainRfNodes] = useState<RFNode<CustomNodeData>[]>([]);
   const [mainRfEdges, setMainRfEdges] = useState<RFEdge[]>([]);
   
+  // Add state for subflow functionality
+  const [interfaceRfNodes, setInterfaceRfNodes] = useState<RFNode<CustomNodeData | SubFlowNodeData>[]>([]);
+  const [interfaceRfEdges, setInterfaceRfEdges] = useState<RFEdge[]>([]);
+  const [expandedStates, setExpandedStates] = useState<Map<string, boolean>>(new Map());
+  
   const [featureRfNodes, setFeatureRfNodes] = useState<RFNode<CustomNodeData>[]>([]);
   const [featureRfEdges, setFeatureRfEdges] = useState<RFEdge[]>([]);
 
@@ -87,11 +94,41 @@ export default function FmeaVisualizerPage() {
   const [activeTab, setActiveTab] = useState<string>("main");
   const [initialLayoutAppliedForTabs, setInitialLayoutAppliedForTabs] = useState<Set<string>>(new Set());
 
+  // Handle subflow expand/collapse
+  const handleToggleExpand = useCallback((nodeId: string) => {
+    setExpandedStates(prev => {
+      const newStates = new Map(prev);
+      newStates.set(nodeId, !prev.get(nodeId));
+      
+      // Reprocess interface nodes with new expanded states
+      const processedData = processNodesForSubFlows(
+        mainRfNodes, 
+        mainRfEdges, 
+        newStates, 
+        handleToggleExpand
+      );
+      
+      // Layout the nodes
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+        [...processedData.subFlowNodes, ...processedData.regularNodes], 
+        processedData.subFlowEdges
+      );
+      
+      setInterfaceRfNodes(layoutedNodes);
+      setInterfaceRfEdges(layoutedEdges);
+      setNeedsLayout(true);
+      
+      return newStates;
+    });
+  }, [mainRfNodes, mainRfEdges]);
+
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
       if (activeTab === 'main') {
         setMainRfNodes((nds) => applyNodeChanges(changes, nds));
+      } else if (activeTab === 'interface') {
+        setInterfaceRfNodes((nds) => applyNodeChanges(changes, nds));
       } else if (activeTab === 'feature') {
         setFeatureRfNodes((nds) => applyNodeChanges(changes, nds));
       } else if (activeTab === 'failure') {
@@ -105,6 +142,8 @@ export default function FmeaVisualizerPage() {
     (changes) => {
       if (activeTab === 'main') {
         setMainRfEdges((eds) => applyEdgeChanges(changes, eds));
+      } else if (activeTab === 'interface') {
+        setInterfaceRfEdges((eds) => applyEdgeChanges(changes, eds));
       } else if (activeTab === 'feature') {
         setFeatureRfEdges((eds) => applyEdgeChanges(changes, eds));
       } else if (activeTab === 'failure') {
@@ -121,8 +160,10 @@ export default function FmeaVisualizerPage() {
     setSelectedNode(null);
     setBaseInfo(null);
     setMainRfNodes([]); setMainRfEdges([]);
+    setInterfaceRfNodes([]); setInterfaceRfEdges([]);
     setFeatureRfNodes([]); setFeatureRfEdges([]);
     setFailureRfNodes([]); setFailureRfEdges([]);
+    setExpandedStates(new Map());
     setInitialLayoutAppliedForTabs(new Set());
 
     try {
@@ -163,8 +204,26 @@ export default function FmeaVisualizerPage() {
         );
         setMainRfNodes([...layoutedMainNodes]);
         setMainRfEdges([...layoutedMainEdges]);
+        
+        // Create interface view with subflows
+        const interfaceProcessedData = processNodesForSubFlows(
+          allTransformedNodes,
+          parentChildEdges,
+          new Map(), // start with all expanded
+          handleToggleExpand
+        );
+        
+        const { nodes: layoutedInterfaceNodes, edges: layoutedInterfaceEdges } = getLayoutedElements(
+          [...interfaceProcessedData.subFlowNodes, ...interfaceProcessedData.regularNodes],
+          interfaceProcessedData.subFlowEdges
+        );
+        
+        setInterfaceRfNodes([...layoutedInterfaceNodes]);
+        setInterfaceRfEdges([...layoutedInterfaceEdges]);
+        setExpandedStates(interfaceProcessedData.expandedStates);
       } else {
         setMainRfNodes([]); setMainRfEdges([]);
+        setInterfaceRfNodes([]); setInterfaceRfEdges([]);
       }
 
 
@@ -275,6 +334,7 @@ export default function FmeaVisualizerPage() {
       });
 
     setMainRfNodes(updateNodeInList);
+    setInterfaceRfNodes(updateNodeInList);
     setFeatureRfNodes(updateNodeInList);
     setFailureRfNodes(updateNodeInList);
 
@@ -300,9 +360,9 @@ export default function FmeaVisualizerPage() {
   }, [selectedNode, mainRfNodes, toast]);
 
   const triggerLayout = useCallback(() => {
-    let nodesToLayout: RFNode<CustomNodeData>[] = [];
+    let nodesToLayout: RFNode<CustomNodeData | SubFlowNodeData>[] = [];
     let edgesToLayout: RFEdge[] = [];
-    let setNodesFn: React.Dispatch<React.SetStateAction<RFNode<CustomNodeData>[]>> | null = null;
+    let setNodesFn: React.Dispatch<React.SetStateAction<RFNode<CustomNodeData | SubFlowNodeData>[]>> | null = null;
     let setEdgesFn: React.Dispatch<React.SetStateAction<RFEdge[]>> | null = null;
 
     if (activeTab === 'main') {
@@ -310,6 +370,11 @@ export default function FmeaVisualizerPage() {
       edgesToLayout = mainRfEdges;
       setNodesFn = setMainRfNodes;
       setEdgesFn = setMainRfEdges;
+    } else if (activeTab === 'interface') {
+      nodesToLayout = interfaceRfNodes;
+      edgesToLayout = interfaceRfEdges;
+      setNodesFn = setInterfaceRfNodes;
+      setEdgesFn = setInterfaceRfEdges;
     } else if (activeTab === 'feature') {
       nodesToLayout = featureRfNodes;
       edgesToLayout = featureRfEdges;
@@ -331,7 +396,7 @@ export default function FmeaVisualizerPage() {
     } else {
       toast({ variant: "destructive", title: "Layout Error", description: `No data to layout for ${activeTab} view.` });
     }
-  }, [activeTab, mainRfNodes, mainRfEdges, featureRfNodes, featureRfEdges, failureRfNodes, failureRfEdges, toast]);
+  }, [activeTab, mainRfNodes, mainRfEdges, interfaceRfNodes, interfaceRfEdges, featureRfNodes, featureRfEdges, failureRfNodes, failureRfEdges, toast]);
   
   useEffect(() => {
     if (needsLayout) {
@@ -352,7 +417,9 @@ export default function FmeaVisualizerPage() {
     }
   };
   
-  const currentNodes = activeTab === 'main' ? mainRfNodes : activeTab === 'feature' ? featureRfNodes : failureRfNodes;
+  const currentNodes = activeTab === 'main' ? mainRfNodes : 
+                    activeTab === 'interface' ? interfaceRfNodes :
+                    activeTab === 'feature' ? featureRfNodes : failureRfNodes;
   const noDataForActiveTab = currentNodes.length === 0 && !isLoading;
 
 
@@ -375,6 +442,9 @@ export default function FmeaVisualizerPage() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex flex-col h-full">
           <TabsList className="mb-2 shrink-0">
             <TabsTrigger value="main" className="gap-1.5"><ListTree size={16}/>Main Graph</TabsTrigger>
+            <TabsTrigger value="interface" className="gap-1.5" disabled={interfaceRfNodes.length === 0 && !isLoading}>
+                <Component size={16}/>Interface SubFlows
+            </TabsTrigger>
             <TabsTrigger value="feature" className="gap-1.5" disabled={featureRfNodes.length === 0 && featureRfEdges.length === 0 && !isLoading}>
                 <Network size={16}/>Feature Net
             </TabsTrigger>
@@ -398,6 +468,24 @@ export default function FmeaVisualizerPage() {
                 <div className="w-full h-full rounded-lg shadow-lg border border-border bg-card flex items-center justify-center">
                   <p className="text-muted-foreground text-lg p-8 text-center">
                     {isLoading ? "Loading graph..." : "Please input FMEA JSON data. Main graph will appear here."}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+            <TabsContent value="interface" className="h-full m-0">
+              {!isLoading && interfaceRfNodes.length > 0 ? (
+                <GraphViewerWrapper
+                  nodes={interfaceRfNodes}
+                  edges={interfaceRfEdges}
+                  onNodeClick={handleNodeClick}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  fitView={needsLayout && activeTab === 'interface'}
+                />
+              ) : (
+                <div className="w-full h-full rounded-lg shadow-lg border border-border bg-card flex items-center justify-center">
+                  <p className="text-muted-foreground text-lg p-8 text-center">
+                    {isLoading ? "Loading interface subflows..." : "No interface data available or input FMEA JSON data."}
                   </p>
                 </div>
               )}
