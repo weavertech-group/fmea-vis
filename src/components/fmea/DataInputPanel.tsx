@@ -20,9 +20,9 @@ interface DataInputPanelProps {
 
 const exampleRequirementsJson = `{
   "nodes": [
-    { "uuid": 101, "parentId": -1, "nodeType": "requirement", "description": "The system shall adhere to safety standard ISO 26262." },
-    { "uuid": 102, "parentId": 101, "nodeType": "func", "description": "Implement fault detection for critical sensors." },
-    { "uuid": 103, "parentId": 102, "nodeType": "cha", "description": "Sensor diagnostic coverage > 99%." }
+    { "uuid": "101", "parentId": "-1", "nodeType": "requirement", "description": "The system shall adhere to safety standard ISO 26262." },
+    { "uuid": "102", "parentId": "101", "nodeType": "func", "description": "Implement fault detection for critical sensors." },
+    { "uuid": "103", "parentId": "102", "nodeType": "cha", "description": "Sensor diagnostic coverage > 99%." }
   ]
 }`;
 
@@ -34,19 +34,19 @@ const exampleDfmeaJson = `{
     "evaluationCriteria": "Automotive SPICE Level 3"
   },
   "nodes": [
-    { "uuid": 1, "parentId": -1, "nodeType": "system", "description": "Vehicle Powertrain System", "extra": { "dr": 1 } },
-    { "uuid": 2, "parentId": 1, "nodeType": "subsystem", "description": "Engine Control Unit (ECU)", "extra": { "dr": 2 } },
-    { "uuid": 3, "parentId": 2, "nodeType": "component", "description": "Microprocessor", "extra": { "dr": 3 } },
-    { "uuid": 4, "parentId": 3, "nodeType": "func", "description": "Execute control algorithms", "extra": { "category": 1 } },
-    { "uuid": 5, "parentId": 4, "nodeType": "failure", "description": "Algorithm crashes", "extra": { "failureType": 1, "severity": 9, "occurrence": 3 } },
-    { "uuid": 6, "parentId": 5, "nodeType": "action", "description": "Implement watchdog timer", "extra": { "category": 2, "detection": 4 } },
-    { "uuid": 7, "parentId": 2, "nodeType": "cha", "description": "Processing speed > 100 MIPS" }
+    { "uuid": "1", "parentId": "-1", "nodeType": "system", "description": "Vehicle Powertrain System", "extra": { "dr": 1 } },
+    { "uuid": "2", "parentId": "1", "nodeType": "subsystem", "description": "Engine Control Unit (ECU)", "extra": { "dr": 2 } },
+    { "uuid": "3", "parentId": "2", "nodeType": "component", "description": "Microprocessor", "extra": { "dr": 3 } },
+    { "uuid": "4", "parentId": "3", "nodeType": "func", "description": "Execute control algorithms", "extra": { "category": 1 } },
+    { "uuid": "5", "parentId": "4", "nodeType": "failure", "description": "Algorithm crashes", "extra": { "failureType": 1, "severity": 9, "occurrence": 3 } },
+    { "uuid": "6", "parentId": "5", "nodeType": "action", "description": "Implement watchdog timer", "extra": { "category": 2, "detection": 4 } },
+    { "uuid": "7", "parentId": "2", "nodeType": "cha", "description": "Processing speed > 100 MIPS" }
   ],
   "featureNet": [
-    { "from": 4, "to": 7, "type": 1 }
+    { "from": "4", "to": "7", "type": 1 }
   ],
   "failureNet": [
-    { "from": 5, "to": 5, "type": 2 }
+    { "from": "5", "to": "5", "type": 2 }
   ]
 }`;
 
@@ -58,21 +58,21 @@ const examplePfmeaJson = `{
     "evaluationCriteria": "IATF 16949 Manufacturing Standards"
   },
   "nodes": [
-    { "uuid": 201, "parentId": -1, "nodeType": "item", "description": "Battery Cell Stacking Station" },
-    { "uuid": 202, "parentId": 201, "nodeType": "step", "description": "Pick and place cell" },
-    { "uuid": 203, "parentId": 202, "nodeType": "elem", "description": "Robot Gripper", "extra": { "em": 1 } },
-    { "uuid": 204, "parentId": 203, "nodeType": "func", "description": "Securely hold cell during transfer" },
-    { "uuid": 205, "parentId": 204, "nodeType": "cha", "description": "Gripping force between 5N-7N", "extra": { "type": "process" } },
-    { "uuid": 206, "parentId": 204, "nodeType": "mode", "description": "Cell dropped or misaligned" },
-    { "uuid": 207, "parentId": 206, "nodeType": "effect", "description": "Damaged cell, potential short circuit", "extra": { "category": 1, "severity": 10 } },
-    { "uuid": 208, "parentId": 206, "nodeType": "cause", "description": "Incorrect gripper pressure", "extra": { "occurrence": 4 } },
-    { "uuid": 209, "parentId": 208, "nodeType": "action", "description": "Calibrate gripper pressure sensor daily", "extra": { "category": 1, "detection": 3 } }
+    { "uuid": "201", "parentId": "-1", "nodeType": "item", "description": "Battery Cell Stacking Station" },
+    { "uuid": "202", "parentId": "201", "nodeType": "step", "description": "Pick and place cell" },
+    { "uuid": "203", "parentId": "202", "nodeType": "elem", "description": "Robot Gripper", "extra": { "em": 1 } },
+    { "uuid": "204", "parentId": "203", "nodeType": "func", "description": "Securely hold cell during transfer" },
+    { "uuid": "205", "parentId": "204", "nodeType": "cha", "description": "Gripping force between 5N-7N", "extra": { "type": "process" } },
+    { "uuid": "206", "parentId": "204", "nodeType": "mode", "description": "Cell dropped or misaligned" },
+    { "uuid": "207", "parentId": "206", "nodeType": "effect", "description": "Damaged cell, potential short circuit", "extra": { "category": 1, "severity": 10 } },
+    { "uuid": "208", "parentId": "206", "nodeType": "cause", "description": "Incorrect gripper pressure", "extra": { "occurrence": 4 } },
+    { "uuid": "209", "parentId": "208", "nodeType": "action", "description": "Calibrate gripper pressure sensor daily", "extra": { "category": 1, "detection": 3 } }
   ],
   "featureNet": [
-    { "from": 204, "to": 205, "type": 1 }
+    { "from": "204", "to": "205", "type": 1 }
   ],
   "failureNet": [
-    { "from": 206, "to": 207, "type": 3 }
+    { "from": "206", "to": "207", "type": 3 }
   ]
 }`;
 
@@ -89,7 +89,7 @@ const defaultApiPayloads: Record<ApiResponseType, string> = {
   "sessionId": "session_ghia17289_requirements_focus",
   "nodes": [
     {
-      "uuid": 101
+      "uuid": "101"
     }
   ],
   "documentIds": [
@@ -98,8 +98,8 @@ const defaultApiPayloads: Record<ApiResponseType, string> = {
   "modifiedStructure": {
     "nodes": [
       {
-        "uuid": 100,
-        "parentId": -1,
+        "uuid": "100",
+        "parentId": "-1",
         "nodeType": "system",
         "description": "调整后的机械安全系统",
         "extra": {
@@ -107,15 +107,15 @@ const defaultApiPayloads: Record<ApiResponseType, string> = {
         }
       },
       {
-        "uuid": 101,
-        "parentId": 100,
+        "uuid": "101",
+        "parentId": "100",
         "nodeType": "subsystem",
         "description": "调整后的挤压防护子系统",
         "extra": {}
       },
       {
-        "uuid": 102,
-        "parentId": 101,
+        "uuid": "102",
+        "parentId": "101",
         "nodeType": "component",
         "description": "定制化安全间距挡板",
         "extra": {}

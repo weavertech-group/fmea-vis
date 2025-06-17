@@ -147,9 +147,9 @@ export function PropertiesEditorPanel({ nodeData, apiResponseType, onPropertyCha
             <Label htmlFor="parentId">Parent ID</Label>
             <Input
               id="parentId"
-              type="number"
-              value={nodeData.parentId === -1 ? '' : nodeData.parentId} // Show empty if -1 for better UX
-              onChange={(e) => handleInputChange('parentId', e.target.value === '' ? -1 : (parseInt(e.target.value, 10) || 0))}
+              type="text"
+              value={nodeData.parentId === '-1' ? '' : nodeData.parentId} // Show empty if -1 for better UX
+              onChange={(e) => handleInputChange('parentId', e.target.value === '' ? '-1' : e.target.value)}
               className="mt-1"
               disabled={disabled}
               placeholder="Enter Parent ID or leave empty if none"

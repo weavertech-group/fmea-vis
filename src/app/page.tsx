@@ -134,7 +134,7 @@ export default function FmeaVisualizerPage() {
       }
 
       const allTransformedNodes: RFNode<CustomNodeData>[] = allApiNodes.map((node) => ({
-        id: node.uuid.toString(),
+        id: node.uuid,
         type: "custom",
         data: {
           label: node.description,
@@ -145,11 +145,11 @@ export default function FmeaVisualizerPage() {
       }));
 
       const parentChildEdges: RFEdge[] = allApiNodes
-        .filter(node => node.parentId !== -1 && allApiNodes.find(n => n.uuid === node.parentId))
+        .filter(node => node.parentId !== '-1' && allApiNodes.find(n => n.uuid === node.parentId))
         .map(node => ({
           id: `e_parent_${node.parentId}_${node.uuid}`,
-          source: node.parentId.toString(),
-          target: node.uuid.toString(),
+          source: node.parentId,
+          target: node.uuid,
           type: 'smoothstep',
           animated: false,
           style: { stroke: 'hsl(var(--foreground)/0.5)', strokeWidth: 1.5 },
@@ -173,8 +173,8 @@ export default function FmeaVisualizerPage() {
         .filter(link => allApiNodes.find(n => n.uuid === link.from) && allApiNodes.find(n => n.uuid === link.to))
         .map(link => ({
           id: `e_feature_${link.from}_${link.to}_${link.type}`,
-          source: link.from.toString(),
-          target: link.to.toString(),
+          source: link.from,
+          target: link.to,
           label: `Feature (${link.type})`,
           type: 'smoothstep',
           style: { stroke: 'hsl(var(--chart-2))', strokeWidth: 2 },
@@ -207,8 +207,8 @@ export default function FmeaVisualizerPage() {
         .filter(link => allApiNodes.find(n => n.uuid === link.from) && allApiNodes.find(n => n.uuid === link.to))
         .map(link => ({
           id: `e_failure_${link.from}_${link.to}_${link.type}`,
-          source: link.from.toString(),
-          target: link.to.toString(),
+          source: link.from,
+          target: link.to,
           label: `Failure (${link.type})`,
           type: 'smoothstep',
           style: { stroke: 'hsl(var(--destructive))', strokeWidth: 2 },
@@ -262,7 +262,7 @@ export default function FmeaVisualizerPage() {
 
     const updateNodeInList = (prevNodes: RFNode<CustomNodeData>[]) => 
       prevNodes.map(rfNode => {
-        if (rfNode.id === selectedNode.uuid.toString()) {
+        if (rfNode.id === selectedNode.uuid) {
           return {
             ...rfNode,
             data: {
@@ -280,15 +280,15 @@ export default function FmeaVisualizerPage() {
     setFeatureRfNodes(updateNodeInList);
     setFailureRfNodes(updateNodeInList);
 
-    const originalNodeInMainGraph = mainRfNodes.find(n => n.id === selectedNode.uuid.toString())?.data.originalApiNode;
+    const originalNodeInMainGraph = mainRfNodes.find(n => n.id === selectedNode.uuid)?.data.originalApiNode;
     if (originalNodeInMainGraph && originalNodeInMainGraph.parentId !== selectedNode.parentId) {
       setMainRfEdges(prevEdges => {
-        let newEdges = prevEdges.filter(edge => !(edge.target === selectedNode.uuid.toString() && edge.id.startsWith('e_parent_')));
-        if (selectedNode.parentId !== -1 && mainRfNodes.some(n => n.id === selectedNode.parentId.toString())) {
+        let newEdges = prevEdges.filter(edge => !(edge.target === selectedNode.uuid && edge.id.startsWith('e_parent_')));
+        if (selectedNode.parentId !== '-1' && mainRfNodes.some(n => n.id === selectedNode.parentId)) {
           newEdges.push({
             id: `e_parent_${selectedNode.parentId}_${selectedNode.uuid}`,
-            source: selectedNode.parentId.toString(),
-            target: selectedNode.uuid.toString(),
+            source: selectedNode.parentId,
+            target: selectedNode.uuid,
             type: 'smoothstep',
             animated: false,
             style: { stroke: 'hsl(var(--foreground)/0.5)', strokeWidth: 1.5 },
