@@ -18,6 +18,28 @@ import type {
 } from "@/types/fmea";
 
 import { DataInputPanel } from "@/components/fmea/DataInputPanel";
+
+// Utility function to parse JSON with bigint support for uuid and parentId fields
+function parseJsonWithBigInt(jsonString: string): any {
+  return JSON.parse(jsonString, (key, value) => {
+    // Convert uuid and parentId fields to bigint if they are numeric strings or numbers
+    if (key === 'uuid' || key === 'parentId' || key === 'from' || key === 'to') {
+      if (typeof value === 'string' || typeof value === 'number') {
+        try {
+          // Handle special case for -1 (used for no parent)
+          if (value === '-1' || value === -1) {
+            return -1n;
+          }
+          return BigInt(value);
+        } catch (e) {
+          // If conversion fails, return the original value
+          return value;
+        }
+      }
+    }
+    return value;
+  });
+}
 import { GraphViewerWrapper } from "@/components/fmea/GraphViewer";
 import { PropertiesEditorPanel } from "@/components/fmea/PropertiesEditorPanel";
 import { BaseInfoDisplay } from "@/components/fmea/BaseInfoDisplay";
@@ -125,7 +147,7 @@ export default function FmeaVisualizerPage() {
     setInitialLayoutAppliedForTabs(new Set());
 
     try {
-      const parsedData = JSON.parse(json) as FmeaApiResponse;
+      const parsedData = parseJsonWithBigInt(json) as FmeaApiResponse;
       
       const allApiNodes: BaseApiNode[] = parsedData.nodes || [];
       
@@ -134,7 +156,7 @@ export default function FmeaVisualizerPage() {
       }
 
       const allTransformedNodes: RFNode<CustomNodeData>[] = allApiNodes.map((node) => ({
-        id: node.uuid,
+        id: node.uuid.toString(),
         type: "custom",
         data: {
           label: node.description,
@@ -145,11 +167,11 @@ export default function FmeaVisualizerPage() {
       }));
 
       const parentChildEdges: RFEdge[] = allApiNodes
-        .filter(node => node.parentId !== '-1' && allApiNodes.find(n => n.uuid === node.parentId))
+        .filter(node => node.parentId !== -1n && allApiNodes.find(n => n.uuid === node.parentId))
         .map(node => ({
           id: `e_parent_${node.parentId}_${node.uuid}`,
-          source: node.parentId,
-          target: node.uuid,
+          source: node.parentId.toString(),
+          target: node.uuid.toString(),
           type: 'smoothstep',
           animated: false,
           style: { stroke: 'hsl(var(--foreground)/0.5)', strokeWidth: 1.5 },
@@ -173,8 +195,8 @@ export default function FmeaVisualizerPage() {
         .filter(link => allApiNodes.find(n => n.uuid === link.from) && allApiNodes.find(n => n.uuid === link.to))
         .map(link => ({
           id: `e_feature_${link.from}_${link.to}_${link.type}`,
-          source: link.from,
-          target: link.to,
+          source: link.from.toString(),
+          target: link.to.toString(),
           label: `Feature (${link.type})`,
           type: 'smoothstep',
           style: { stroke: 'hsl(var(--chart-2))', strokeWidth: 2 },
@@ -207,8 +229,8 @@ export default function FmeaVisualizerPage() {
         .filter(link => allApiNodes.find(n => n.uuid === link.from) && allApiNodes.find(n => n.uuid === link.to))
         .map(link => ({
           id: `e_failure_${link.from}_${link.to}_${link.type}`,
-          source: link.from,
-          target: link.to,
+          source: link.from.toString(),
+          target: link.to.toString(),
           label: `Failure (${link.type})`,
           type: 'smoothstep',
           style: { stroke: 'hsl(var(--destructive))', strokeWidth: 2 },
@@ -262,7 +284,7 @@ export default function FmeaVisualizerPage() {
 
     const updateNodeInList = (prevNodes: RFNode<CustomNodeData>[]) => 
       prevNodes.map(rfNode => {
-        if (rfNode.id === selectedNode.uuid) {
+        if (rfNode.id === selectedNode.uuid.toString()) {
           return {
             ...rfNode,
             data: {
@@ -280,15 +302,15 @@ export default function FmeaVisualizerPage() {
     setFeatureRfNodes(updateNodeInList);
     setFailureRfNodes(updateNodeInList);
 
-    const originalNodeInMainGraph = mainRfNodes.find(n => n.id === selectedNode.uuid)?.data.originalApiNode;
+    const originalNodeInMainGraph = mainRfNodes.find(n => n.id === selectedNode.uuid.toString())?.data.originalApiNode;
     if (originalNodeInMainGraph && originalNodeInMainGraph.parentId !== selectedNode.parentId) {
       setMainRfEdges(prevEdges => {
-        let newEdges = prevEdges.filter(edge => !(edge.target === selectedNode.uuid && edge.id.startsWith('e_parent_')));
-        if (selectedNode.parentId !== '-1' && mainRfNodes.some(n => n.id === selectedNode.parentId)) {
+        let newEdges = prevEdges.filter(edge => !(edge.target === selectedNode.uuid.toString() && edge.id.startsWith('e_parent_')));
+        if (selectedNode.parentId !== -1n && mainRfNodes.some(n => n.id === selectedNode.parentId.toString())) {
           newEdges.push({
             id: `e_parent_${selectedNode.parentId}_${selectedNode.uuid}`,
-            source: selectedNode.parentId,
-            target: selectedNode.uuid,
+            source: selectedNode.parentId.toString(),
+            target: selectedNode.uuid.toString(),
             type: 'smoothstep',
             animated: false,
             style: { stroke: 'hsl(var(--foreground)/0.5)', strokeWidth: 1.5 },

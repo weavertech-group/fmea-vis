@@ -148,8 +148,20 @@ export function PropertiesEditorPanel({ nodeData, apiResponseType, onPropertyCha
             <Input
               id="parentId"
               type="text"
-              value={nodeData.parentId === '-1' ? '' : nodeData.parentId} // Show empty if -1 for better UX
-              onChange={(e) => handleInputChange('parentId', e.target.value === '' ? '-1' : e.target.value)}
+              value={nodeData.parentId === -1n ? '' : nodeData.parentId.toString()} // Show empty if -1 for better UX
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === '') {
+                  handleInputChange('parentId', -1n);
+                } else {
+                  try {
+                    handleInputChange('parentId', BigInt(value));
+                  } catch (error) {
+                    // If BigInt conversion fails, keep the current value
+                    // Could add validation feedback here
+                  }
+                }
+              }}
               className="mt-1"
               disabled={disabled}
               placeholder="Enter Parent ID or leave empty if none"
