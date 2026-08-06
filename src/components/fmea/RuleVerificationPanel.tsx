@@ -1,188 +1,206 @@
-
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import type { ApiResponseType, FmeaApiResponse } from '@/types/fmea';
-import type { RuleGroup, RuleItemStatus } from '@/lib/fmea-rules';
-import { runAllRules } from '@/lib/fmea-rules';
-import { parseJsonWithBigInt } from '@/lib/bigint-utils';
-import { CheckCircle, XCircle, AlertTriangle, Info, ChevronDown } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { Badge } from '../ui/badge';
-
+import React, { useState, useEffect, useMemo } from "react";
+import type { ApiResponseType, FmeaApiResponse } from "@/types/fmea";
+import type { RuleGroup, RuleItemStatus } from "@/lib/fmea-rules";
+import { runAllRules } from "@/lib/fmea-rules";
+import { parseJsonWithBigInt } from "@/lib/bigint-utils";
+import { extractUuidsFromText } from "@/lib/fmea-model";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface RuleVerificationPanelProps {
   fmeaJson: string;
   fmeaType: ApiResponseType | null;
   disabled?: boolean;
+  precomputed?: RuleGroup[] | null;
+  onFocusUuid?: (uuid: string) => void;
 }
 
-const statusConfig: Record<RuleItemStatus, { icon: React.ComponentType<{className?: string}>, color: string, label: string, borderColor: string }> = {
-  success: { icon: CheckCircle, color: 'text-green-500', label: '通过', borderColor: 'border-green-500' },
-  error: { icon: XCircle, color: 'text-red-500', label: '错误', borderColor: 'border-red-500' },
-  warning: { icon: AlertTriangle, color: 'text-yellow-500', label: '警告', borderColor: 'border-yellow-500' },
-  info: { icon: Info, color: 'text-blue-500', label: '信息', borderColor: 'border-blue-500' },
+const statusStyle: Record<RuleItemStatus, string> = {
+  success: "bg-emerald-100 text-emerald-800",
+  error: "bg-red-100 text-red-800",
+  warning: "bg-amber-100 text-amber-800",
+  info: "bg-slate-100 text-slate-600",
 };
 
-
-export function RuleVerificationPanel({ fmeaJson, fmeaType }: RuleVerificationPanelProps) {
+export function RuleVerificationPanel({
+  fmeaJson,
+  fmeaType,
+  precomputed,
+  onFocusUuid,
+}: RuleVerificationPanelProps) {
   const [resultGroups, setResultGroups] = useState<RuleGroup[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<'all' | 'error' | 'warning' | 'success'>('all');
+  const [filterStatus, setFilterStatus] = useState<"all" | "error" | "warning" | "success">(
+    "all"
+  );
 
   useEffect(() => {
+    if (precomputed) {
+      setResultGroups(precomputed);
+      setParseError(null);
+      return;
+    }
     if (!fmeaJson || !fmeaType) {
       setResultGroups([]);
       setParseError(null);
-      setFilterStatus('all');
       return;
     }
-
     try {
       const parsedData = parseJsonWithBigInt(fmeaJson) as FmeaApiResponse;
       setParseError(null);
-      const validationResults = runAllRules(parsedData, fmeaType);
-      setResultGroups(validationResults);
-      setFilterStatus('all');
+      setResultGroups(runAllRules(parsedData, fmeaType));
     } catch (error) {
-      if (error instanceof Error) {
-        setParseError(error.message);
-      } else {
-        setParseError('An unknown error occurred during JSON parsing.');
-      }
+      setParseError(error instanceof Error ? error.message : "JSON parse failed");
       setResultGroups([]);
-      setFilterStatus('all');
     }
-  }, [fmeaJson, fmeaType]);
-  
-  const totalRules = useMemo(() => resultGroups.reduce((acc, group) => acc + group.rules.length, 0), [resultGroups]);
-  const totalSummary = useMemo(() => {
-    return resultGroups.reduce((acc, group) => {
-        acc.error += group.summary.error || 0;
-        acc.warning += group.summary.warning || 0;
-        acc.success += group.summary.success || 0;
-        return acc;
-    }, { error: 0, warning: 0, success: 0 });
-  }, [resultGroups]);
+  }, [fmeaJson, fmeaType, precomputed]);
+
+  const totalRules = useMemo(
+    () => resultGroups.reduce((acc, group) => acc + group.rules.length, 0),
+    [resultGroups]
+  );
+  const totalSummary = useMemo(
+    () =>
+      resultGroups.reduce(
+        (acc, group) => {
+          acc.error += group.summary.error || 0;
+          acc.warning += group.summary.warning || 0;
+          acc.success += group.summary.success || 0;
+          return acc;
+        },
+        { error: 0, warning: 0, success: 0 }
+      ),
+    [resultGroups]
+  );
 
   const filteredGroups = useMemo(() => {
     if (parseError) return [];
-    if (filterStatus === 'all') return resultGroups;
-    return resultGroups.map(group => ({
-      ...group,
-      rules: group.rules.filter(rule => rule.status === filterStatus)
-    })).filter(group => group.rules.length > 0);
+    if (filterStatus === "all") return resultGroups;
+    return resultGroups
+      .map((group) => ({
+        ...group,
+        rules: group.rules.filter((rule) => rule.status === filterStatus),
+      }))
+      .filter((group) => group.rules.length > 0);
   }, [resultGroups, filterStatus, parseError]);
 
-
-  if (!fmeaJson) {
-    return null;
-  }
+  if (!fmeaJson) return null;
 
   return (
-    <TooltipProvider>
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold leading-none tracking-tight font-headline">规则验证</h2>
-        <p className="text-sm text-muted-foreground mt-1.5">
-          共验证 {totalRules} 条规则。点击下方标签或分组标题进行筛选和查看。
-        </p>
-        <div className="flex items-center space-x-2 pt-3">
-          <Badge
-            onClick={() => setFilterStatus('all')}
-            className={cn('cursor-pointer transition-all hover:opacity-80', filterStatus === 'all' && 'ring-2 ring-primary/80 ring-offset-2 ring-offset-background')}
-          >
-            全部 {totalRules}
-          </Badge>
-           <Badge
-            onClick={() => totalSummary.error > 0 && setFilterStatus('error')}
-            variant="destructive"
-            className={cn('cursor-pointer transition-all hover:opacity-80', {'opacity-50 cursor-not-allowed': totalSummary.error === 0}, filterStatus === 'error' && 'ring-2 ring-destructive/80 ring-offset-2 ring-offset-background')}
-          >
-            错误 {totalSummary.error}
-          </Badge>
-          <Badge
-            onClick={() => totalSummary.warning > 0 && setFilterStatus('warning')}
-            className={cn(
-              'cursor-pointer transition-all hover:opacity-80',
-              'border-yellow-500/80 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/20',
-              {'opacity-50 cursor-not-allowed': totalSummary.warning === 0},
-              filterStatus === 'warning' && 'ring-2 ring-yellow-500/80 ring-offset-2 ring-offset-background'
-            )}
-          >
-            警告 {totalSummary.warning}
-          </Badge>
-           <Badge
-            onClick={() => totalSummary.success > 0 && setFilterStatus('success')}
-            className={cn(
-              'cursor-pointer transition-all hover:opacity-80',
-              'border-green-500/80 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20',
-              {'opacity-50 cursor-not-allowed': totalSummary.success === 0},
-              filterStatus === 'success' && 'ring-2 ring-green-500/80 ring-offset-2 ring-offset-background'
-            )}
-          >
-            通过 {totalSummary.success}
-          </Badge>
+    <div className="panel">
+      <div className="panel-head flex-wrap gap-2">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold">Structure verification</h2>
+          <p className="text-xs text-muted-foreground">
+            {totalRules} rules · methodology / agent constraints
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {(
+            [
+              ["all", "All", totalRules],
+              ["error", "Errors", totalSummary.error],
+              ["warning", "Warnings", totalSummary.warning],
+              ["success", "Passed", totalSummary.success],
+            ] as const
+          ).map(([key, label, count]) => (
+            <Button
+              key={key}
+              type="button"
+              size="sm"
+              variant={filterStatus === key ? "default" : "outline"}
+              disabled={key !== "all" && count === 0}
+              onClick={() => setFilterStatus(key)}
+            >
+              {label} ({count})
+            </Button>
+          ))}
         </div>
       </div>
-      
-      <div className="space-y-2">
+
+      <div className="panel-body space-y-2">
         {parseError ? (
-           <p className="text-destructive">JSON 解析错误: {parseError}</p>
-        ) : filteredGroups.length === 0 && filterStatus !== 'all' ? (
-           <div className="text-center text-muted-foreground py-8">
-              <p>没有找到状态为 “{statusConfig[filterStatus].label}” 的规则。</p>
-            </div>
-        ) : filteredGroups.map((group) => {
-          const groupStatusConfig = statusConfig[group.overallStatus];
-          return (
-            <details key={group.groupTitle} className={cn("group border-l-4 rounded-r-md bg-muted/30 p-4", groupStatusConfig.borderColor)} open={group.overallStatus !== 'success'}>
-              <summary className="flex items-center justify-between cursor-pointer list-none">
-                <div className="flex items-center space-x-3">
-                  <groupStatusConfig.icon className={cn("w-5 h-5", groupStatusConfig.color)} />
-                  <h3 className="font-semibold">{group.groupTitle}</h3>
-                </div>
-                <div className="flex items-center space-x-2">
-                  {group.summary.error > 0 && <span className="text-xs font-medium text-red-600 dark:text-red-400">{group.summary.error} 错误</span>}
-                  {group.summary.warning > 0 && <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400">{group.summary.warning} 警告</span>}
-                  {group.summary.success > 0 && <span className="text-xs font-medium text-gray-500">{group.summary.success} 通过</span>}
-                  <ChevronDown className="w-4 h-4 transition-transform group-open:rotate-180" />
-                </div>
+          <div className="rounded-md border border-destructive/30 bg-red-50 p-3 text-sm text-destructive">
+            JSON parse error: {parseError}
+          </div>
+        ) : filteredGroups.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">
+            No rules match this filter.
+          </div>
+        ) : (
+          filteredGroups.map((group) => (
+            <details
+              key={group.groupTitle}
+              open={
+                group.overallStatus === "error" || group.overallStatus === "warning"
+              }
+              className="rounded-lg border border-border"
+            >
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-medium">
+                <span
+                  className={cn(
+                    "h-2 w-2 shrink-0 rounded-full",
+                    group.overallStatus === "error"
+                      ? "bg-red-500"
+                      : group.overallStatus === "warning"
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                  )}
+                />
+                <span className="min-w-0 flex-1 truncate">{group.groupTitle}</span>
+                <span className="text-xs text-muted-foreground">
+                  E{group.summary.error || 0} · W{group.summary.warning || 0} · OK
+                  {group.summary.success || 0}
+                </span>
               </summary>
-              <ul className="mt-4 space-y-4 pl-8 border-l border-border ml-2.5">
-                {group.rules.map(rule => {
-                  if (rule.status === 'info') return null; // Don't show info items
-                  const itemStatusConfig = statusConfig[rule.status];
+              <ul className="border-t border-border bg-muted/20">
+                {group.rules.map((rule) => {
+                  if (rule.status === "info") return null;
+                  const uuids = extractUuidsFromText(rule.details || "");
                   return (
-                    <li key={rule.id} className="flex items-start space-x-4">
-                      <itemStatusConfig.icon className={cn("w-5 h-5 flex-shrink-0 mt-0.5", itemStatusConfig.color)} />
-                      <div className="flex-1">
-                        <div className={cn("text-sm", rule.status !== 'success' && 'text-foreground', rule.status === 'success' && 'text-muted-foreground')}>
-                          <code className="text-xs bg-gray-200 dark:bg-gray-700 rounded px-1 py-0.5 mr-2">{rule.id}</code>
-                          {rule.description}
-                          {rule.remark && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button className="ml-2 align-middle">
-                                  <Info className="w-4 h-4 text-blue-400" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">{rule.remark}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                        {rule.details && <p className={cn("text-xs mt-1", itemStatusConfig.color, "opacity-90")}>{rule.details}</p>}
+                    <li
+                      key={rule.id}
+                      className="border-b border-border/60 px-3 py-2.5 text-sm last:border-0"
+                    >
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
+                          {rule.id}
+                        </code>
+                        <Badge
+                          variant="secondary"
+                          className={cn("text-[10px]", statusStyle[rule.status])}
+                        >
+                          {rule.status}
+                        </Badge>
+                        {uuids.length > 0 && onFocusUuid && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => onFocusUuid(uuids[0])}
+                          >
+                            Focus
+                          </Button>
+                        )}
                       </div>
+                      <p className="mt-1">{rule.description}</p>
+                      {rule.details && (
+                        <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                          {rule.details}
+                        </p>
+                      )}
                     </li>
                   );
                 })}
               </ul>
             </details>
-          )
-        })}
+          ))
+        )}
       </div>
-    </TooltipProvider>
+    </div>
   );
 }

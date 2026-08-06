@@ -1,18 +1,26 @@
-# **App Name**: FMEA Visualizer
+# FMEA Workbench
 
-## Core Features:
+See [PRODUCT.md](./PRODUCT.md) for the full product design.
 
-- Data Input: Paste JSON for Requirements, DFMEA, or PFMEA from the FMEA Agent API.
-- Graph Visualization: Parse JSON into interactive React Flow graph with parent-child, featureNet, and failureNet edges.
-- Node Property Editing: Edit node properties from `originalApiNode` and see local changes.
-- State Management: Manage state and data flow for graph updates via JSON input and node property changes.
+## App name
 
-## Style Guidelines:
+**FMEA Workbench** — Agent structure QA console for Requirements / DFMEA / PFMEA.
 
-- Primary color: Light blue (#94D0CC) for clarity and system visualization.
-- Background color: Light gray (#E9E9E9) for a clean, neutral backdrop.
-- Accent color: Soft teal (#64B2CD) to highlight interactive elements and edges.
-- Body and headline font: 'Inter', a neutral sans-serif for readability.
-- Use clear icons to represent node types within the graph (e.g., failure, action, cha, etc.).
-- Employ a hierarchical graph layout (using Dagre or similar) with optional user rearrangement of nodes.
-- Subtle animations when updating node properties or highlighting graph paths.
+## Core loop
+
+Ingest → Inspect → Validate → Edit → Export
+
+## Surfaces
+
+- Landing with samples + paste/API + recent sessions
+- Overview (health score, type distribution, risk signals, coverage)
+- Structure graph (Dagre)
+- Outline tree
+- Analysis table (S/O/D/RPN)
+- Feature / Failure / Interface nets
+- Rules (methodology engine, focus node)
+- Inspector + export JSON
+
+## Visual system
+
+Dark engineering workstation, cool steel accent, IBM Plex Sans/Mono. No purple/gradient slop.

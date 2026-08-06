@@ -24,9 +24,8 @@ export function UnifiedPropertiesEditor({
   onInterfaceLinkPropertyChange,
   onUpdateNode,
   onUpdateInterfaceLink,
-  disabled
+  disabled,
 }: UnifiedPropertiesEditorProps) {
-  // Show interface link editor if an interface link is selected
   if (interfaceLinkData) {
     return (
       <InterfaceLinkEditor
@@ -38,7 +37,6 @@ export function UnifiedPropertiesEditor({
     );
   }
 
-  // Otherwise show the node properties editor
   return (
     <PropertiesEditorPanel
       nodeData={nodeData}

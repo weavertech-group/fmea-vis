@@ -1,10 +1,11 @@
-import type {Metadata} from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'FMEA Visualizer',
-  description: 'Visualize and edit FMEA API responses as a network graph.',
+  title: "FMEA Workbench",
+  description:
+    "Structure QA workbench for FMEA Agent responses (Requirements, DFMEA, PFMEA).",
 };
 
 export default function RootLayout({
@@ -14,8 +15,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head />
-      <body className="font-body antialiased">
+      <body className="min-h-screen">
         {children}
         <Toaster />
       </body>

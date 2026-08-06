@@ -1,7 +1,6 @@
-// src/components/fmea/InterfaceSubFlow.tsx
 "use client";
 
-import React, { useCallback, useMemo, useEffect } from "react";
+import React, { useMemo, useEffect } from "react";
 import ReactFlow, {
   Node,
   Edge,
@@ -16,15 +15,13 @@ import ReactFlow, {
   Panel,
   useReactFlow,
 } from "reactflow";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { formatBigIntForDisplay } from "@/lib/bigint-utils";
+import { formatBigIntForDisplay, idKey } from "@/lib/bigint-utils";
 import { CustomNodeData, InterfaceLink } from "@/types/fmea";
-import { Network, Share2 } from "lucide-react";
+import { Network } from "lucide-react";
+import { CustomGraphNode } from "./CustomGraphNode";
 
 interface InterfaceGroupData {
-  structureId: bigint;
+  structureId: bigint | string | number;
   interfaces: InterfaceLink[];
   nodes: Node<CustomNodeData>[];
   edges: Edge[];
@@ -39,33 +36,47 @@ interface InterfaceSubFlowProps {
   fitView?: boolean;
 }
 
-// Custom node component for interface subflow
-function InterfaceStructureNode({ data }: NodeProps<{ structureId: bigint; interfaceCount: number }>) {
+function InterfaceStructureNode({
+  data,
+}: NodeProps<{ structureId: bigint | string | number; interfaceCount: number }>) {
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-chart-4 w-3 h-3" />
-      <Card className="bg-chart-4/10 border-chart-4 shadow-md w-48">
-        <CardHeader className="p-3">
-          <div className="flex items-center space-x-2">
-            <Network className="w-4 h-4 text-chart-4" />
-            <CardTitle className="text-sm font-medium text-chart-4">
-              Interface Structure
-            </CardTitle>
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!h-2.5 !w-2.5 !border-2 !border-background !bg-primary"
+      />
+      <div className="w-48 rounded-xl border border-primary/30 bg-card px-3 py-2.5 shadow-panel">
+        <div className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/15">
+            <Network className="h-3.5 w-3.5 text-primary" />
           </div>
-          <div className="text-xs text-muted-foreground font-mono">
-            ID: {formatBigIntForDisplay(data.structureId)}
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+              Structure
+            </p>
+            <p className="font-mono text-[11px] text-muted-foreground">
+              {formatBigIntForDisplay(data.structureId)}
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="p-3 pt-0">
-          <Badge variant="secondary" className="text-xs">
-            {data.interfaceCount} interfaces
-          </Badge>
-        </CardContent>
-      </Card>
-      <Handle type="source" position={Position.Bottom} className="!bg-chart-4 w-3 h-3" />
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {data.interfaceCount} interface link{data.interfaceCount === 1 ? "" : "s"}
+        </p>
+      </div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!h-2.5 !w-2.5 !border-2 !border-background !bg-primary"
+      />
     </>
   );
 }
+
+const nodeTypes = {
+  interfaceStructure: InterfaceStructureNode,
+  custom: CustomGraphNode,
+};
 
 function InterfaceSubFlow({
   interfaceGroup,
@@ -77,110 +88,65 @@ function InterfaceSubFlow({
 }: InterfaceSubFlowProps) {
   const { fitView: rfFitView } = useReactFlow();
 
-  // Create a structure node for this group
-  const structureNode: Node = useMemo(() => ({
-    id: `structure_${interfaceGroup.structureId}`,
-    type: 'interfaceStructure',
-    position: { x: 0, y: 0 },
-    data: {
-      structureId: interfaceGroup.structureId,
-      interfaceCount: interfaceGroup.interfaces.length,
-    },
-  }), [interfaceGroup.structureId, interfaceGroup.interfaces.length]);
-
-  // Combine structure node with interface nodes
-  const allNodes = useMemo(() => [
-    structureNode,
-    ...interfaceGroup.nodes.map(node => ({
-      ...node,
-      position: {
-        x: node.position.x,
-        y: node.position.y + 120, // Offset below structure node
+  const structureNode: Node = useMemo(
+    () => ({
+      id: `structure_${idKey(interfaceGroup.structureId)}`,
+      type: "interfaceStructure",
+      position: { x: 0, y: 0 },
+      data: {
+        structureId: interfaceGroup.structureId,
+        interfaceCount: interfaceGroup.interfaces.length,
       },
-    })),
-  ], [structureNode, interfaceGroup.nodes]);
+    }),
+    [interfaceGroup.structureId, interfaceGroup.interfaces.length]
+  );
 
-  // Create edges from structure to interface start nodes
-  const structureEdges = useMemo(() => {
-    const uniqueStartNodes = new Set(
-      interfaceGroup.interfaces.map(iface => iface.startId.toString())
-    );
-    
-    return Array.from(uniqueStartNodes).map(startNodeId => ({
-      id: `structure_edge_${interfaceGroup.structureId}_${startNodeId}`,
-      source: structureNode.id,
-      target: startNodeId,
-      type: 'smoothstep',
-      style: { stroke: 'hsl(var(--chart-4))', strokeWidth: 1, strokeDasharray: '5,5' },
-    }));
-  }, [interfaceGroup.structureId, interfaceGroup.interfaces, structureNode.id]);
-
-  const allEdges = useMemo(() => [
-    ...structureEdges,
-    ...interfaceGroup.edges,
-  ], [structureEdges, interfaceGroup.edges]);
+  const allNodes = useMemo(
+    () => [
+      structureNode,
+      ...interfaceGroup.nodes.map((node) => ({
+        ...node,
+        position: {
+          x: node.position.x,
+          y: node.position.y + 100,
+        },
+      })),
+    ],
+    [structureNode, interfaceGroup.nodes]
+  );
 
   useEffect(() => {
     if (fitView) {
-      rfFitView({ padding: 0.1 });
+      rfFitView({ padding: 0.2, duration: 200 });
     }
-  }, [fitView, rfFitView, allNodes, allEdges]);
-
-  const nodeTypes = useMemo(() => ({
-    interfaceStructure: InterfaceStructureNode,
-    custom: ({ data, selected }: NodeProps<CustomNodeData>) => {
-      // Use existing CustomGraphNode logic but with interface-specific styling
-      const { originalApiNode } = data;
-      return (
-        <>
-          <Handle type="target" position={Position.Left} className="!bg-chart-4 w-3 h-3" />
-          <Card 
-            className={cn(
-              "shadow-md w-48 border-chart-4 bg-chart-4/10",
-              selected ? "ring-2 ring-chart-4 ring-offset-1" : ""
-            )}
-          >
-            <CardHeader className="p-2">
-              <div className="flex items-center space-x-2">
-                <Share2 className="w-4 h-4 text-chart-4" />
-                <CardTitle className="text-xs font-medium text-chart-4">
-                  {data.type.toUpperCase()}
-                </CardTitle>
-              </div>
-              <div className="text-[10px] text-muted-foreground font-mono">
-                UUID: {formatBigIntForDisplay(originalApiNode.uuid)}
-              </div>
-            </CardHeader>
-            <CardContent className="p-2 pt-0">
-              <div className="text-xs text-foreground/80 break-words line-clamp-2">
-                {data.label}
-              </div>
-            </CardContent>
-          </Card>
-          <Handle type="source" position={Position.Right} className="!bg-chart-4 w-3 h-3" />
-        </>
-      );
-    },
-  }), []);
+  }, [fitView, rfFitView, allNodes, interfaceGroup.edges]);
 
   return (
-    <div className="w-full h-full rounded-lg border border-chart-4/30 bg-chart-4/5">
+    <div className="h-full w-full bg-canvas">
       <ReactFlow
         nodes={allNodes}
-        edges={allEdges}
+        edges={interfaceGroup.edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
+        minZoom={0.15}
+        maxZoom={1.75}
         proOptions={{ hideAttribution: true }}
-        className="bg-transparent"
+        className="bg-canvas"
       >
-        <Background variant={BackgroundVariant.Dots} gap={12} size={0.5} className="opacity-30" />
-        <Panel position="top-left" className="bg-chart-4/10 border border-chart-4/30 rounded px-2 py-1">
-          <div className="text-xs font-medium text-chart-4 flex items-center gap-1">
-            <Network className="w-3 h-3" />
-            Structure {formatBigIntForDisplay(interfaceGroup.structureId)}
+        <Controls showInteractive={false} position="bottom-left" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={18}
+          size={1}
+          color="hsl(220 12% 18%)"
+        />
+        <Panel position="top-left" className="m-2">
+          <div className="rounded-lg border border-border bg-card/90 px-2.5 py-1.5 text-[11px] text-muted-foreground backdrop-blur-sm">
+            Structure {formatBigIntForDisplay(interfaceGroup.structureId)} ·{" "}
+            {interfaceGroup.interfaces.length} links
           </div>
         </Panel>
       </ReactFlow>

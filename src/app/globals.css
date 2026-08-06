@@ -4,102 +4,176 @@
 
 @layer base {
   :root {
-    --background: 0 0% 97%; /* Light Gray */
-    --foreground: 0 0% 9%; /* Near Black */
+    --background: 210 16% 97%;
+    --foreground: 222 22% 14%;
 
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 22% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 222 22% 14%;
 
-    --primary: 217.2 91.2% 59.8%; /* macOS Blue */
-    --primary-foreground: 0 0% 100%;
+    --primary: 222 47% 28%;
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 0 0% 95%; /* Lighter Gray */
-    --secondary-foreground: 0 0% 9%;
+    --secondary: 214 16% 93%;
+    --secondary-foreground: 222 22% 18%;
 
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 214 16% 94%;
+    --muted-foreground: 215 12% 42%;
 
-    --accent: 217.2 91.2% 59.8%; /* macOS Blue */
-    --accent-foreground: 0 0% 100%;
+    --accent: 214 18% 92%;
+    --accent-foreground: 222 22% 14%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 217.2 91.2% 59.8%;
+    --border: 214 16% 88%;
+    --input: 214 16% 88%;
+    --ring: 222 47% 36%;
 
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.8rem;
+    --chart-1: 222 47% 36%;
+    --chart-2: 160 40% 36%;
+    --chart-3: 0 55% 48%;
+    --chart-4: 35 70% 45%;
+    --chart-5: 200 45% 40%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
+    --radius: 0.5rem;
 
-  .dark {
-    --background: 0 0% 9%; /* Near Black */
-    --foreground: 0 0% 95%; /* Near White */
-
-    --card: 0 0% 14%; /* Darker Gray */
-    --card-foreground: 0 0% 95%;
-
-    --popover: 0 0% 14%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 214.3 90% 63.3%; /* Brighter macOS Blue for Dark Mode */
-    --primary-foreground: 0 0% 9%;
-
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 91.4%;
-
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-
-    --accent: 214.3 90% 63.3%; /* Brighter macOS Blue for Dark Mode */
-    --accent-foreground: 0 0% 9%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 214.3 90% 63.3%;
-    
-    --chart-1: 12 76% 71%;
-    --chart-2: 173 58% 49%;
-    --chart-3: 197 37% 34%;
-    --chart-4: 43 74% 76%;
-    --chart-5: 27 87% 77%;
-
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 210 16% 98%;
+    --sidebar-foreground: 222 22% 14%;
+    --sidebar-primary: 222 47% 28%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-}
+    --sidebar-accent: 214 16% 94%;
+    --sidebar-accent-foreground: 222 22% 14%;
+    --sidebar-border: 214 16% 88%;
+    --sidebar-ring: 222 47% 36%;
 
-@layer base {
+    --canvas: 214 18% 96%;
+    --aside-left: 18rem;
+    --aside-right: 17rem;
+  }
+
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden bg-background;
+  }
+
+  .app-header {
+    @apply z-30 flex shrink-0 items-center gap-3 border-b border-border bg-card px-3 py-2;
+  }
+
+  .app-main {
+    @apply relative flex min-h-0 min-w-0 flex-1;
+  }
+
+  .app-rail {
+    @apply flex h-full w-[var(--aside-left)] shrink-0 flex-col border-r border-border bg-card;
+  }
+
+  .app-inspector {
+    @apply flex h-full w-[var(--aside-right)] shrink-0 flex-col border-l border-border bg-card;
+  }
+
+  .app-content {
+    @apply relative flex min-h-0 min-w-0 flex-1 flex-col bg-muted/40;
+  }
+
+  .app-canvas {
+    @apply min-h-0 flex-1 bg-[hsl(var(--canvas))];
+  }
+
+  .app-statusbar {
+    @apply flex shrink-0 items-center gap-3 border-t border-border bg-card px-3 py-1 text-xs text-muted-foreground;
+  }
+
+  .panel {
+    @apply rounded-lg border border-border bg-card shadow-sm;
+  }
+
+  .panel-head {
+    @apply flex items-center gap-2 border-b border-border px-3 py-2;
+  }
+
+  .panel-body {
+    @apply p-3;
+  }
+
+  .section-label {
+    @apply text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+
+  .app-tabs {
+    @apply flex items-center gap-0.5 overflow-x-auto border-b border-border bg-card px-2 py-1;
+  }
+
+  .app-tab {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground;
+  }
+  .app-tab:hover:not(:disabled):not([data-state="active"]) {
+    @apply bg-muted text-foreground;
+  }
+  .app-tab[data-state="active"] {
+    @apply bg-primary/10 text-primary;
+  }
+  .app-tab:disabled {
+    @apply opacity-40;
+  }
+}
+
+/* React Flow */
+.react-flow__controls {
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  background: white !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  margin: 12px !important;
+}
+.react-flow__controls-button {
+  background: white !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+  width: 28px !important;
+  height: 28px !important;
+}
+.react-flow__controls-button path {
+  fill: #334155 !important;
+}
+.react-flow__minimap {
+  background: #f1f5f9 !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 8px !important;
+  margin: 12px !important;
+}
+.react-flow__attribution {
+  display: none !important;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: hsl(var(--primary)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

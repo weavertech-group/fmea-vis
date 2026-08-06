@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect } from "react";
@@ -25,7 +24,7 @@ interface GraphViewerProps {
   onEdgeClick?: (event: React.MouseEvent, edge: Edge) => void;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
-  fitView?: boolean;
+  fitToken?: number;
 }
 
 const nodeTypes: NodeTypes = {
@@ -39,21 +38,25 @@ function GraphViewerInternal({
   onEdgeClick,
   onNodesChange,
   onEdgesChange,
-  fitView,
+  fitToken = 0,
 }: GraphViewerProps) {
-
-  const proOptions = { hideAttribution: true };
   const { fitView: rfFitView } = useReactFlow();
 
   useEffect(() => {
-    if (fitView) {
-      rfFitView({ padding: 0.2 });
-    }
-  }, [fitView, rfFitView, nodes, edges]);
-
+    if (!nodes.length) return;
+    const t = setTimeout(() => {
+      rfFitView({
+        padding: 0.08,
+        duration: 180,
+        maxZoom: 1,
+        minZoom: 0.72,
+      });
+    }, 120);
+    return () => clearTimeout(t);
+  }, [fitToken, nodes.length, rfFitView]);
 
   return (
-    <div className="w-full h-full rounded-lg shadow-lg overflow-hidden border border-border">
+    <div className="h-full w-full overflow-hidden bg-[#003838]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -62,19 +65,34 @@ function GraphViewerInternal({
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
-        // fitView prop is now handled by the useEffect above
-        proOptions={proOptions}
-        className="bg-background"
+        proOptions={{ hideAttribution: true }}
+        minZoom={0.1}
+        maxZoom={1.6}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.75 }}
+        defaultEdgeOptions={{ type: "smoothstep" }}
+        className="bg-[#003838]"
+        onlyRenderVisibleElements
       >
-        <Controls className="[&_button]:bg-card [&_button]:border-border [&_button_path]:fill-foreground hover:[&_button]:bg-muted" />
-        <MiniMap nodeStrokeWidth={3} zoomable pannable className="!bg-card border border-border" />
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} className="opacity-50" />
+        <Controls showInteractive={false} position="bottom-left" />
+        <MiniMap
+          nodeStrokeWidth={2}
+          zoomable
+          pannable
+          position="bottom-right"
+          maskColor="rgba(0, 20, 20, 0.75)"
+          nodeColor={() => "#c0c0c0"}
+        />
+        <Background
+          variant={BackgroundVariant.Lines}
+          gap={24}
+          size={1}
+          color="#005050"
+        />
       </ReactFlow>
     </div>
   );
 }
 
-// Wrap with ReactFlowProvider. This is crucial for useReactFlow to work.
 export function GraphViewerWrapper(props: GraphViewerProps) {
   return (
     <ReactFlowProvider>
